@@ -1,38 +1,53 @@
 # CouchRest: CouchDB, close to the metal
 
-CouchRest is based on [CouchDB's couch.js test
-library](http://svn.apache.org/repos/asf/couchdb/trunk/share/www/script/couch.js),
-which I find to be concise, clear, and well designed. CouchRest lightly wraps
-CouchDB's HTTP API, managing JSON serialization, and remembering the URI-paths
-to CouchDB's API endpoints so you don't have to.
+[![Build Status](https://travis-ci.org/couchrest/couchrest.png)](https://travis-ci.org/couchrest/couchrest)
 
-CouchRest is designed to make a simple base for application and framework-specific object oriented APIs. CouchRest is Object-Mapper agnostic, the parsed JSON it returns from CouchDB shows up as subclasses of Ruby's Hash. Naked JSON, just as it was mean to be.
+CouchRest wraps CouchDB's HTTP API using persistent connections with the [HTTPClient gem](https://github.com/nahi/httpclient) managing servers, databases, and JSON document serialization using CouchDB's API endpoints so you don't have to.
 
-**Note: CouchRest only support CouchDB 0.9.0 or newer. Some features requires CouchDB 0.10.0 or newer.**
+CouchRest is designed to provide a simple base for application and framework-specific object oriented APIs. CouchRest is Object-Mapper agnostic, the JSON objects provided by CouchDB are parsed and returned as Document objects providing a simple Hash-like interface.
 
-## Important Upgrade Notice
+For more complete modelling support based on ActiveModel, please checkout CouchRest's sister project: [CouchRest Model](https://github.com/couchrest/couchrest_model).
 
-### 2011-04-04: Time#to_json no longer overwritten!
+## CouchDB Version
 
-Now sticking to JSON standard format. Ensure you views using Time will be ordered correctly after upgrade!
+Tested on latest stable release (1.6.X), but should work on older versions above 1.0. Also known to work on [Cloudant](http://cloudant.com).
 
-## Easy Install
+### Performance with Persistent Connections
+
+When connecting to a CouchDB 1.X server from a Linux system, you may see a big drop in performance due to the change in library to HTTPClient using persistent connections. The issue is caused by the NOWAIT TCP configuration option causing sockets to hang as they wait for more information. The fix is a [simple configuration change](http://docs.couchdb.org/en/1.6.1/maintenance/performance.html#network):
+
+```bash
+curl -X PUT "http://localhost:5984/_config/httpd/socket_options" -d '"[{nodelay, true}]"'
+```
+
+## Install
 
     $ sudo gem install couchrest
-   
-## Relax, it's RESTful
 
-CouchRest rests on top of a HTTP abstraction layer using by default Heroku’s excellent REST Client Ruby HTTP wrapper.
+## Basic Usage
 
-## Modelling
+Getting started with CouchRest is easy. You can send requests directly to a URL using a [RestClient](https://github.com/rest-client/rest-client)-like interface:
 
-For more complete modelling support based on Rails 3's ActiveModel, please checkout CouchRest's sister project: [CouchRest Model](https://github.com/couchrest/couchrest_model).
+```ruby
+CouchRest.put("http://localhost:5984/testdb/doc", 'name' => 'test', 'date' => Date.current)
+```
 
-## Extended Document
+Or use the lean server and database orientated API to take advantage of persistent and reusable connections:
 
-As of May 2010 support for the popular CouchRest::ExtendedDocument mixin has been moved to its own gem: [couchrest_extended_document](http://github.com/couchrest/couchrest_extended_document).
+```ruby
+server = CouchRest.new           # assumes localhost by default!
+db = server.database!('testdb')  # create db if it doesn't already exist
 
-If you're starting a new project however, we recommend you use the more actively maintained [CouchRest Model](https://github.com/couchrest/couchrest_model) project, supported by the same team of developers.
+# Save a document, with ID
+db.save_doc('_id' => 'doc', 'name' => 'test', 'date' => Date.current)
+
+# Fetch doc
+doc = db.get('doc')
+doc.inspect # #<CouchRest::Document _id: "doc", _rev: "1-defa304b36f9b3ef3ed606cc45d02fe2", name: "test", date: "2015-07-13">
+
+# Delete
+db.delete_doc(doc)
+```
 
 ## Running the Specs
 
@@ -41,15 +56,19 @@ CouchRest install, from the project root directory use bundler to install
 the dependencies and then run the tests:
 
     $ bundle install
-    $ bundle exec spec spec
+    $ bundle exec rake
 
-To date, the couchrest specs have been show to run on:
+To date, the couchrest specs have been shown to run on:
 
- * Ruby 1.8.7
- * Ruby 1.9.2
- * JRuby 1.5.6
+ * MRI Ruby 1.9.3 and later
+ * JRuby 1.7.19
+ * Rubinius 2.5.7
+
+See the [Travis Build status](https://travis-ci.org/couchrest/couchrest) for more details.
 
 ## Docs
+
+Changes history: [history.txt](./history.txt)
 
 API: [http://rdoc.info/projects/couchrest/couchrest](http://rdoc.info/projects/couchrest/couchrest)
 
@@ -61,5 +80,5 @@ Please post bugs, suggestions and patches to the bug tracker at [http://github.c
 
 Follow us on Twitter: [http://twitter.com/couchrest](http://twitter.com/couchrest)
 
-Also, check [http://twitter.com/#search?q=%23couchrest](http://twitter.com/#search?q=%23couchrest)
+Also, check [https://twitter.com/search?q=couchrest](https://twitter.com/search?q=couchrest)
 
