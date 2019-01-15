@@ -140,7 +140,10 @@ module CouchRest
           slug = doc['_id'] = @server.next_uuid
           CouchRest.put "#{@root}/#{slug}", doc
         rescue Exception => e #notify, toss the uuid and try again
-          Airbrake.notify(e, :paramaters => {:uuid => slug, :doc => doc.to_hash.inspect})
+          Raven.capture_message(
+            e.message,
+            extra: { "doc": doc.to_hash.inspect, "uuid": slug, "bulk": bulk, "batch": batch }
+          )
           slug = doc['_id'] = @server.next_uuid
           CouchRest.put "#{@root}/#{slug}", doc
         end
