@@ -43,11 +43,14 @@ JAVASCRIPT
     def view_on db, view_name, query = {}, &block
       raise ArgumentError, "View query options must be set as symbols!" if query.keys.find{|k| k.is_a?(String)}
       if query.has_key?(:key) && query[:key].nil?
-        if defined?(Airbrake)
+        if defined?(Raven)
           begin
             raise ArgumentError, "key cannot be nil"
           rescue => e
-            Airbrake.notify(e,{:parameters => {:db => db.name, :view => view_name, :query => query}})
+            Raven.capture_message(
+              e.message,
+              extra: { "db_name": db.name, "view": view_name, "query": query }
+            )
           end
         end
         return {"rows" => []}
